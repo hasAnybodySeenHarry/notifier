@@ -30,7 +30,7 @@ var upgrader = websocket.Upgrader{
 func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		app.serverError(w, r, err)
+		app.logger.Printf("Error encountered while upgrading as the web socket: %v", err)
 		return
 	}
 	defer conn.Close()
@@ -43,7 +43,6 @@ func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			app.serverError(w, r, err)
 			break
 		}
 	}
@@ -52,7 +51,7 @@ func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *
 	defer app.clients.mu.Unlock()
 
 	if err := app.removeWebSocketUser(userID); err != nil {
-		app.serverError(w, r, err)
+		app.logger.Printf("Error encountered while removing the client with ID %d %v", userID, err)
 	}
 }
 
@@ -61,10 +60,11 @@ func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) {
 	defer app.clients.mu.Unlock()
 
 	if _, exists := app.clients.users[userID]; !exists {
-		app.clients.users[userID] = &client{latest: primitive.NilObjectID} // query the last acessed noti id from database
+		app.clients.users[userID] = &client{
+			latest: primitive.NilObjectID,
+			conn:   conn,
+		} // query the last acessed noti id from database
 	}
-
-	app.clients.users[userID].conn = conn
 }
 
 func (app *application) removeWebSocketUser(userID int64) error {

@@ -86,6 +86,7 @@ func (app *application) Cleanup(session sarama.ConsumerGroupSession) error {
 
 func (app *application) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
+		log.Println(string(message.Value))
 		app.processMessage(message)
 		session.MarkMessage(message, "")
 	}
