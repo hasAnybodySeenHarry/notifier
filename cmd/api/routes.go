@@ -15,7 +15,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheck)
 
 	// notifications
-	router.HandlerFunc(http.MethodGet, "/v1/notifications/subscribe", app.notificationSubscriberHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/notifications/subscribe", app.mustAuth(app.notificationSubscriberHandler))
 
-	return router
+	return app.enableCORS(router)
 }

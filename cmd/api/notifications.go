@@ -10,10 +10,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type clients struct {
-	users   map[int64]*client
-	dummyID int64
-	mu      sync.Mutex
+type server struct {
+	users map[int64]*client
+	mu    sync.Mutex
 }
 
 type client struct {
@@ -35,9 +34,7 @@ func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *
 	}
 	defer conn.Close()
 
-	userID := app.clients.dummyID
-	app.clients.dummyID++
-
+	userID := app.getUser(r).Id
 	app.addWebSocketUser(userID, conn)
 
 	for {
@@ -47,8 +44,8 @@ func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *
 		}
 	}
 
-	app.clients.mu.Lock()
-	defer app.clients.mu.Unlock()
+	app.server.mu.Lock()
+	defer app.server.mu.Unlock()
 
 	if err := app.removeWebSocketUser(userID); err != nil {
 		app.logger.Printf("Error encountered while removing the client with ID %d %v", userID, err)
@@ -56,11 +53,11 @@ func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *
 }
 
 func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) {
-	app.clients.mu.Lock()
-	defer app.clients.mu.Unlock()
+	app.server.mu.Lock()
+	defer app.server.mu.Unlock()
 
-	if _, exists := app.clients.users[userID]; !exists {
-		app.clients.users[userID] = &client{
+	if _, exists := app.server.users[userID]; !exists {
+		app.server.users[userID] = &client{
 			latest: primitive.NilObjectID,
 			conn:   conn,
 		} // query the last acessed noti id from database
@@ -68,24 +65,24 @@ func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) {
 }
 
 func (app *application) removeWebSocketUser(userID int64) error {
-	app.clients.mu.Lock()
-	defer app.clients.mu.Unlock()
+	app.server.mu.Lock()
+	defer app.server.mu.Unlock()
 
-	client, ok := app.clients.users[userID]
+	client, ok := app.server.users[userID]
 	if !ok {
 		return fmt.Errorf("user with ID %d got already removed", userID)
 	}
 
 	log.Printf("saving the latest sent event id %d", client.latest)
 
-	delete(app.clients.users, userID)
+	delete(app.server.users, userID)
 	return client.conn.Close()
 }
 
 func (app *application) sendMessageToClient(clientID int64, notiID primitive.ObjectID, message []byte) error {
-	app.clients.mu.Lock()
-	client, ok := app.clients.users[clientID]
-	app.clients.mu.Unlock()
+	app.server.mu.Lock()
+	client, ok := app.server.users[clientID]
+	app.server.mu.Unlock()
 
 	if !ok {
 		return nil

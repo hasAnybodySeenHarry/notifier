@@ -12,8 +12,9 @@ type application struct {
 	config  config
 	wg      sync.WaitGroup
 	logger  *log.Logger
-	clients *clients
+	server  *server
 	models  *data.Models
+	clients data.Clients
 }
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 
 	l := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	dbClient, err := initDependencies(cfg, l)
+	dbClient, conn, err := initDependencies(cfg, l)
 	if err != nil {
 		l.Fatalln(err)
 	}
@@ -33,16 +34,16 @@ func main() {
 		}
 	}()
 
-	clients := &clients{
-		users:   make(map[int64]*client, 0),
-		dummyID: 1,
+	server := &server{
+		users: make(map[int64]*client, 0),
 	}
 
 	app := application{
 		config:  cfg,
 		logger:  l,
-		clients: clients,
+		server:  server,
 		models:  data.New(dbClient, cfg.db.database),
+		clients: data.NewClients(conn),
 	}
 
 	var servers sync.WaitGroup
