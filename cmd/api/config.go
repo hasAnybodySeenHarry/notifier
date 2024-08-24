@@ -29,7 +29,7 @@ type db struct {
 }
 
 func loadConfig(cfg *config) {
-	flag.StringVar(&cfg.grpcAddr, "grpcAddr", os.Getenv("GRPC-ADDR"), "The address of the gRPC server")
+	flag.StringVar(&cfg.grpcAddr, "grpcAddr", os.Getenv("GRPC_ADDR"), "The address of the gRPC server")
 
 	flag.IntVar(&cfg.port, "port", getEnvInt("PORT", 4000), "The port that the server listens at")
 	flag.StringVar(&cfg.env, "env", os.Getenv("ENV"), "The environment of the server")

@@ -93,4 +93,4 @@ jobs:
         file: ./Dockerfile
         push: true
         tags: |
-          docker.io/${{ secrets.DOCKERHUB_USERNAME }}/expenses:latest
+          docker.io/${{ secrets.DOCKERHUB_USERNAME }}/notifier:latest
