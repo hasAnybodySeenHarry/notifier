@@ -32,7 +32,7 @@ lint: test
 
 push: check-branch
 	@echo "Pushing source code to GitHub..."
-	# git pull origin $(BRANCH_NAME)
+	git pull origin $(BRANCH_NAME)
 	git add $(COMMIT_DIR)
 	git commit -m $(COMMIT_MSG)
 	git push origin $(BRANCH_NAME)

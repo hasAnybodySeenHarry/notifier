@@ -4,7 +4,7 @@ services:
   app:
     build: .
     environment:
-      PORT: 8082
+      PORT: 8080
       ENV: development
       PUB_HOST: kafka-node
       PUB_PORT: 9092
@@ -14,7 +14,7 @@ services:
       MONGO_HOST: mongo-db
       MONGO_PORT: 27017
     ports:
-    - "8082:8082"
+    - "8082:8080"
     networks:
     - app-network
 
