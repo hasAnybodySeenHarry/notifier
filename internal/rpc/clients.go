@@ -1,4 +1,4 @@
-package data
+package rpc
 
 import (
 	"google.golang.org/grpc"
@@ -10,8 +10,8 @@ type Clients struct {
 	Users users.UserServiceClient
 }
 
-func NewClients(conn *grpc.ClientConn) Clients {
-	return Clients{
+func NewClients(conn *grpc.ClientConn) *Clients {
+	return &Clients{
 		Users: users.NewUserServiceClient(conn),
 	}
 }

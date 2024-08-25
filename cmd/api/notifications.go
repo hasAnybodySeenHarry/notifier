@@ -1,13 +1,15 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"harry2an.com/notifier/internal/data"
 )
 
 type server struct {
@@ -16,8 +18,8 @@ type server struct {
 }
 
 type client struct {
-	latest primitive.ObjectID
-	conn   *websocket.Conn
+	lastSent primitive.ObjectID
+	conn     *websocket.Conn
 }
 
 var upgrader = websocket.Upgrader{
@@ -35,47 +37,93 @@ func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *
 	defer conn.Close()
 
 	userID := app.getUser(r).Id
-	app.addWebSocketUser(userID, conn)
+	err = app.addWebSocketUser(userID, conn)
+	if err != nil {
+		app.logger.Printf("Error encountered while retrieving the last sent notification id with %v", err)
+		return
+	}
 
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
+			app.logger.Println("Error reading from the client or client just disconnected")
 			break
 		}
 	}
-
-	app.server.mu.Lock()
-	defer app.server.mu.Unlock()
 
 	if err := app.removeWebSocketUser(userID); err != nil {
 		app.logger.Printf("Error encountered while removing the client with ID %d %v", userID, err)
 	}
 }
 
-func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) {
+func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) error {
+	var notifications []*data.Notification
+
+	lastID, err := app.models.UserStates.GetLastInsertedID(userID)
+	if err != nil && !errors.Is(err, data.ErrNoRecords) {
+		return err
+	} else if err == nil {
+		notifications, err = app.models.GetDifferedNotifications(lastID, userID)
+		if err != nil {
+			return err
+		}
+	}
+
+	// overriding the previous connection
+	c := &client{
+		lastSent: lastID,
+		conn:     conn,
+	}
+
+	for _, notification := range notifications {
+		message, err := json.Marshal(notification)
+		if err != nil {
+			app.logger.Printf("WARNING: Failed to marshal notification: %v", err)
+			continue
+		}
+
+		err = conn.WriteMessage(websocket.TextMessage, message)
+		if err != nil {
+			app.logger.Printf("WARNING: Failed to send message to userID %d: %v", userID, err)
+		}
+
+		c.lastSent = notification.ID
+	}
+
 	app.server.mu.Lock()
 	defer app.server.mu.Unlock()
+	app.server.users[userID] = c
 
-	if _, exists := app.server.users[userID]; !exists {
-		app.server.users[userID] = &client{
-			latest: primitive.NilObjectID,
-			conn:   conn,
-		} // query the last acessed noti id from database
-	}
+	return nil
 }
 
 func (app *application) removeWebSocketUser(userID int64) error {
 	app.server.mu.Lock()
-	defer app.server.mu.Unlock()
 
 	client, ok := app.server.users[userID]
 	if !ok {
 		return fmt.Errorf("user with ID %d got already removed", userID)
 	}
 
-	log.Printf("saving the latest sent event id %d", client.latest)
-
 	delete(app.server.users, userID)
+	defer app.server.mu.Unlock()
+
+	userState := &data.UserState{
+		UserID:         userID,
+		LastSentNotiID: client.lastSent,
+	}
+
+	// omitting the inserted id
+	_, err := app.models.UserStates.UpSert(userState)
+	if err != nil {
+		app.logger.Printf("WARNING: Updating the last sent notification ID faild with %v", err)
+	}
+
+	err = client.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "You are being disconnected"))
+	if err != nil {
+		app.logger.Printf("WARNING: Failed to send close message to userID %d: %v", userID, err)
+	}
+
 	return client.conn.Close()
 }
 
@@ -96,7 +144,7 @@ func (app *application) sendMessageToClient(clientID int64, notiID primitive.Obj
 		return err
 	}
 
-	client.latest = notiID
+	client.lastSent = notiID
 
 	return nil
 }
