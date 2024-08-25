@@ -7,10 +7,6 @@ import (
 	"harry2an.com/notifier/internal/core"
 )
 
-const (
-	DebtCreated = "debt_created"
-)
-
 type Debt struct {
 	Metadata metadata `json:"metadata"`
 	Data     debtData `json:"data"`
@@ -24,4 +20,19 @@ type debtData struct {
 	Total     float64     `json:"total"`
 	CreatedAt time.Time   `json:"created_at"`
 	Version   uuid.UUID   `json:"-"`
+}
+
+func (d *Debt) DebtToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"metadata": d.Metadata.MetadataToMap(),
+		"data": map[string]interface{}{
+			"id":         d.Data.ID,
+			"lender":     core.EntityToMap(&d.Data.Lender),
+			"borrower":   core.EntityToMap(&d.Data.Borrower),
+			"category":   d.Data.Category,
+			"total":      d.Data.Total,
+			"created_at": d.Data.CreatedAt.Format(time.RFC3339),
+			"version":    d.Data.Version.String(),
+		},
+	}
 }

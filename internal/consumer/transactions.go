@@ -7,10 +7,6 @@ import (
 	"harry2an.com/notifier/internal/core"
 )
 
-const (
-	TransactionCreated = "transaction_created"
-)
-
 type Transaction struct {
 	Metadata metadata        `json:"metadata"`
 	Data     transactionData `json:"data"`
@@ -25,4 +21,20 @@ type transactionData struct {
 	Description string      `json:"description"`
 	CreatedAt   time.Time   `json:"created_at"`
 	Version     uuid.UUID   `json:"version"`
+}
+
+func (t *Transaction) TransactionToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"metadata": t.Metadata.MetadataToMap(),
+		"data": map[string]interface{}{
+			"id":          t.Data.ID,
+			"lender":      core.EntityToMap(&t.Data.Lender),
+			"borrower":    core.EntityToMap(&t.Data.Borrower),
+			"debt_id":     t.Data.DebtID,
+			"amount":      t.Data.Amount,
+			"description": t.Data.Description,
+			"created_at":  t.Data.CreatedAt.Format(time.RFC3339),
+			"version":     t.Data.Version.String(),
+		},
+	}
 }

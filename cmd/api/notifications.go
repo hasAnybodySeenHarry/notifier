@@ -63,7 +63,7 @@ func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) err
 	if err != nil && !errors.Is(err, data.ErrNoRecords) {
 		return err
 	} else if err == nil {
-		notifications, err = app.models.GetDifferedNotifications(lastID, userID)
+		notifications, err = app.models.Notifications.GetNotifications(lastID, userID)
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) err
 	}
 
 	for _, notification := range notifications {
-		message, err := json.Marshal(notification)
+		message, err := json.Marshal(notification.Payload)
 		if err != nil {
 			app.logger.Printf("WARNING: Failed to marshal notification: %v", err)
 			continue

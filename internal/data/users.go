@@ -12,7 +12,7 @@ import (
 )
 
 type UserStateModel struct {
-	collection *mongo.Collection
+	db *mongo.Database
 }
 
 type UserState struct {
@@ -28,7 +28,7 @@ func (m *UserStateModel) UpSert(u *UserState) (primitive.ObjectID, error) {
 	update := bson.M{"$set": bson.M{"last_sent_noti_id": u.LastSentNotiID}}
 	opts := options.Update().SetUpsert(true)
 
-	res, err := m.collection.UpdateOne(ctx, filter, update, opts)
+	res, err := m.db.Collection(userStateCol).UpdateOne(ctx, filter, update, opts)
 	if err != nil {
 		return primitive.NilObjectID, err
 	}
@@ -52,7 +52,7 @@ func (m *UserStateModel) GetLastInsertedID(userID int64) (primitive.ObjectID, er
 	filter := bson.M{"user_id": userID}
 	var res UserState
 
-	err := m.collection.FindOne(ctx, filter).Decode(&res)
+	err := m.db.Collection(userStateCol).FindOne(ctx, filter).Decode(&res)
 	if err != nil {
 		switch {
 		case errors.Is(err, mongo.ErrNoDocuments):
