@@ -7,8 +7,8 @@ replicaCount: 1
 
 image:
   registry: docker.io
-  repository: "demona9458/notifier"
-  tag: "latest"
+  repository: ""
+  tag: ""
   pullPolicy: Always
 
 imagePullSecrets: []
@@ -77,8 +77,6 @@ env:
   value: ""
 - name: PORT
   value: "8080"
-- name: ENV
-  value: "development"
 - name: MONGO_USERNAME
   valueFrom:
     secretKeyRef:
