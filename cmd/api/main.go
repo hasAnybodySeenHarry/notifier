@@ -24,12 +24,22 @@ func main() {
 
 	l := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	dbClient, conn, err := initDependencies(cfg, l)
+	dbClient, conn, consumers, err := initDependencies(cfg, l)
 	if err != nil {
 		l.Fatalln(err)
 	}
 	defer func() {
 		err = closeClient(dbClient)
+		if err != nil {
+			l.Fatalln(err)
+		}
+
+		err = conn.Close()
+		if err != nil {
+			l.Fatalln(err)
+		}
+
+		err = consumers.Close()
 		if err != nil {
 			l.Fatalln(err)
 		}
@@ -52,7 +62,7 @@ func main() {
 
 	go func() {
 		defer servers.Done()
-		if err := app.consume(); err != nil {
+		if err := app.consume(consumers); err != nil {
 			app.logger.Fatalln("Topic consuming stopped with error:", err)
 		}
 	}()
