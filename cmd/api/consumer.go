@@ -34,6 +34,9 @@ func (app *application) consume(cg sarama.ConsumerGroup) error {
 	cancel()
 	app.logger.Println("Received signals to stop the consumer")
 
+	app.logger.Println("Waiting 3 seconds for the consumer to be stopped")
+	time.Sleep(3 * time.Second)
+
 	app.logger.Println("Consumer group has been stopped")
 	return nil
 }
