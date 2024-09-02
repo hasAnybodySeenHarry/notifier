@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func (app *application) routes() http.Handler {
@@ -12,6 +13,7 @@ func (app *application) routes() http.Handler {
 	router.NotFound = http.HandlerFunc(app.notFound)
 
 	// meta
+	router.Handler(http.MethodGet, "/metrics", promhttp.HandlerFor(app.metrics.Registry, promhttp.HandlerOpts{}))
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheck)
 
 	// notifications

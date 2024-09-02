@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"harry2an.com/notifier/internal/data"
+	"harry2an.com/notifier/internal/metrics"
 	"harry2an.com/notifier/internal/rpc"
 )
 
@@ -16,6 +17,7 @@ type application struct {
 	server  *server
 	models  *data.Models
 	clients *rpc.Clients
+	metrics *metrics.Metrics
 }
 
 func main() {
@@ -55,6 +57,7 @@ func main() {
 		server:  server,
 		models:  data.New(dbClient, cfg.db.database),
 		clients: rpc.NewClients(conn),
+		metrics: metrics.Register(),
 	}
 
 	var servers sync.WaitGroup

@@ -94,6 +94,9 @@ func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) err
 	defer app.server.mu.Unlock()
 	app.server.users[userID] = c
 
+	// increase the active users count
+	app.metrics.Increase()
+
 	return nil
 }
 
@@ -123,6 +126,9 @@ func (app *application) removeWebSocketUser(userID int64) error {
 	if err != nil {
 		app.logger.Printf("WARNING: Failed to send close message to userID %d: %v", userID, err)
 	}
+
+	// decrease the active users count
+	app.metrics.Decrease()
 
 	return client.conn.Close()
 }
