@@ -16,13 +16,32 @@ func (app *application) notifyDebt(lenderID int64, borrowerID int64, message []b
 		app.logger.Printf("Error encountered while inserting %v", err)
 	}
 
-	err = app.sendMessageToClient(borrowerID, notiID, message)
+	client1, err := app.sendMessageToClient(borrowerID, notiID, message)
 	if err != nil {
 		app.logger.Printf("%v", err)
 	}
 
-	err = app.sendMessageToClient(lenderID, notiID, message)
+	client2, err := app.sendMessageToClient(lenderID, notiID, message)
 	if err != nil {
 		app.logger.Printf("%v", err)
+	}
+
+	if !(client1 && client2) {
+		usersToNotify := make([]int64, 0, 2)
+
+		if !client1 {
+			app.logger.Printf("Borrower with ID %d is not being served by the current instance", borrowerID)
+			usersToNotify = append(usersToNotify, borrowerID)
+		}
+
+		if !client2 {
+			app.logger.Printf("Lender with ID %d is not being served by the current instance", borrowerID)
+			usersToNotify = append(usersToNotify, lenderID)
+		}
+
+		err := app.broadcastNotiIDForUsers(usersToNotify, notiID, consumer.DebtCreated)
+		if err != nil {
+			app.logger.Printf("Failed to broadcast notifications to the Pub/Sub: %v", err)
+		}
 	}
 }

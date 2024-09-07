@@ -38,4 +38,13 @@ spec:
         type: AverageValue
         averageValue: {{ .Values.autoscaling.averageTotalHTTPRequests }}
   {{- end}}
+  {{- if .Values.autoscaling.activeUsersCount }}
+  - type: Pods
+    pods:
+      metric:
+        name: active_users_count
+      target:
+        type: AverageValue
+        averageValue: {{ .Values.autoscaling.activeUsersCount }}
+  {{- end}}
 {{- end }}

@@ -13,11 +13,11 @@ import (
 )
 
 type server struct {
-	users map[int64]*client
+	users map[int64]*user
 	mu    sync.Mutex
 }
 
-type client struct {
+type user struct {
 	lastSent primitive.ObjectID
 	conn     *websocket.Conn
 }
@@ -70,7 +70,7 @@ func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) err
 	}
 
 	// overriding the previous connection
-	c := &client{
+	u := &user{
 		lastSent: lastID,
 		conn:     conn,
 	}
@@ -87,12 +87,12 @@ func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) err
 			app.logger.Printf("WARNING: Failed to send message to userID %d: %v", userID, err)
 		}
 
-		c.lastSent = notification.ID
+		u.lastSent = notification.ID
 	}
 
 	app.server.mu.Lock()
 	defer app.server.mu.Unlock()
-	app.server.users[userID] = c
+	app.server.users[userID] = u
 
 	// increase the active users count
 	app.metrics.Increase()
@@ -133,13 +133,13 @@ func (app *application) removeWebSocketUser(userID int64) error {
 	return client.conn.Close()
 }
 
-func (app *application) sendMessageToClient(clientID int64, notiID primitive.ObjectID, message []byte) error {
+func (app *application) sendMessageToClient(clientID int64, notiID primitive.ObjectID, message []byte) (sent bool, err error) {
 	app.server.mu.Lock()
 	client, ok := app.server.users[clientID]
 	app.server.mu.Unlock()
 
 	if !ok {
-		return nil
+		return false, nil
 	}
 
 	if err := client.conn.WriteMessage(websocket.TextMessage, message); err != nil {
@@ -147,10 +147,15 @@ func (app *application) sendMessageToClient(clientID int64, notiID primitive.Obj
 		if removeErr := app.removeWebSocketUser(clientID); removeErr != nil {
 			app.logger.Printf("Failed to remove user with ID: %d: %v", clientID, removeErr)
 		}
-		return err
+		return false, err
 	}
 
 	client.lastSent = notiID
 
+	return true, nil
+}
+
+func (app *application) broadcastNotiIDForUsers(users []int64, notiID primitive.ObjectID, notiType string) error {
+	app.logger.Printf("Broadcasted the noti ID %s with type %s for users %v", notiID.String(), notiType, users)
 	return nil
 }

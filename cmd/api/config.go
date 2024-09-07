@@ -13,6 +13,7 @@ type config struct {
 	pub      publisher
 	db       db
 	grpcAddr string
+	redis    rd
 }
 
 type publisher struct {
@@ -26,6 +27,11 @@ type db struct {
 	database string
 	host     string
 	port     int
+}
+
+type rd struct {
+	addr     string
+	password string
 }
 
 func loadConfig(cfg *config) {
@@ -42,6 +48,9 @@ func loadConfig(cfg *config) {
 	flag.StringVar(&cfg.db.database, "mongo-database", os.Getenv("MONGO_DATABASE"), "The mongo database to connect to")
 	flag.StringVar(&cfg.db.host, "mongo-host", os.Getenv("MONGO_HOST"), "The address to connect to the mongo database")
 	flag.IntVar(&cfg.db.port, "mongo-port", getEnvInt("MONGO_PORT", 27017), "The port to connect to the mongo database")
+
+	flag.StringVar(&cfg.redis.addr, "redis-addr", os.Getenv("REDIS_ADDR"), "The environment of the redis database")
+	flag.StringVar(&cfg.redis.password, "redis-password", os.Getenv("REDIS_PASSWORD"), "The environment of the redis database")
 
 	flag.Parse()
 }

@@ -6,16 +6,21 @@ import (
 	"sync"
 
 	"github.com/IBM/sarama"
+	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 )
 
-func initDependencies(cfg config, logger *log.Logger) (*mongo.Client, *grpc.ClientConn, sarama.ConsumerGroup, error) {
-	var clientErr, grpcErr, consumerErr error
-
-	var client *mongo.Client
-	var conn *grpc.ClientConn
-	var consumers sarama.ConsumerGroup
+func initDependencies(
+	cfg config, logger *log.Logger,
+) (
+	db *mongo.Client,
+	conn *grpc.ClientConn,
+	consumers sarama.ConsumerGroup,
+	client *redis.Client,
+	err error,
+) {
+	var clientErr, grpcErr, consumerErr, redisErr error
 
 	var wg sync.WaitGroup
 
@@ -33,7 +38,7 @@ func initDependencies(cfg config, logger *log.Logger) (*mongo.Client, *grpc.Clie
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		client, clientErr = openDB(cfg.db, 6)
+		db, clientErr = openDB(cfg.db, 6)
 		if clientErr != nil {
 			logger.Printf("Failed to connect to the database: %v", clientErr)
 		} else {
@@ -53,17 +58,32 @@ func initDependencies(cfg config, logger *log.Logger) (*mongo.Client, *grpc.Clie
 		}
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		client, redisErr = openRedis(&cfg.redis, 2, 6)
+		if redisErr != nil {
+			log.Printf("Failed to connect to the redis database: %v", redisErr)
+		} else {
+			logger.Println("Successfully connected to the redis database")
+		}
+	}()
+
 	wg.Wait()
 
 	if clientErr != nil {
-		return nil, nil, nil, clientErr
+		return nil, nil, nil, nil, clientErr
 	}
 	if grpcErr != nil {
-		return nil, nil, nil, grpcErr
+		return nil, nil, nil, nil, grpcErr
 	}
 	if consumerErr != nil {
-		return nil, nil, nil, consumerErr
+		return nil, nil, nil, nil, consumerErr
+	}
+	if redisErr != nil {
+		return nil, nil, nil, nil, redisErr
 	}
 
-	return client, conn, consumers, nil
+	return db, conn, consumers, client, nil
 }

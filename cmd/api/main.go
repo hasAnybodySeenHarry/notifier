@@ -7,6 +7,7 @@ import (
 
 	"harry2an.com/notifier/internal/data"
 	"harry2an.com/notifier/internal/metrics"
+	"harry2an.com/notifier/internal/redis"
 	"harry2an.com/notifier/internal/rpc"
 )
 
@@ -16,8 +17,9 @@ type application struct {
 	logger  *log.Logger
 	server  *server
 	models  *data.Models
-	clients *rpc.Clients
+	grpc    *rpc.Clients
 	metrics *metrics.Metrics
+	clients *redis.Clients
 }
 
 func main() {
@@ -26,12 +28,12 @@ func main() {
 
 	l := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	dbClient, conn, consumers, err := initDependencies(cfg, l)
+	db, conn, consumers, client, err := initDependencies(cfg, l)
 	if err != nil {
 		l.Fatalln(err)
 	}
 	defer func() {
-		err = closeClient(dbClient)
+		err = closeClient(db)
 		if err != nil {
 			l.Fatalln(err)
 		}
@@ -45,19 +47,25 @@ func main() {
 		if err != nil {
 			l.Fatalln(err)
 		}
+
+		err = client.Close()
+		if err != nil {
+			l.Fatalln(err)
+		}
 	}()
 
 	server := &server{
-		users: make(map[int64]*client, 0),
+		users: make(map[int64]*user, 0),
 	}
 
 	app := application{
 		config:  cfg,
 		logger:  l,
 		server:  server,
-		models:  data.New(dbClient, cfg.db.database),
-		clients: rpc.NewClients(conn),
+		models:  data.New(db, cfg.db.database),
+		grpc:    rpc.NewClients(conn),
 		metrics: metrics.Register(),
+		clients: redis.New(client),
 	}
 
 	var servers sync.WaitGroup

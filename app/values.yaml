@@ -19,7 +19,7 @@ autoscaling:
   enabled: true
   minReplicas: 1
   maxReplicas: 5
-  averageTotalHTTPRequests: 10
+  activeUsersCount: 20
 
 serviceAccountName: default
 
@@ -112,3 +112,13 @@ env:
     secretKeyRef:
       name: pubsub-secrets
       key: port
+- name: REDIS_ADDR
+  valueFrom:
+    secretKeyRef:
+      name: redis-secrets
+      key: addr
+- name: REDIS_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: redis-secrets
+      key: password

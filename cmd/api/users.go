@@ -13,7 +13,7 @@ func (app *application) getUserForToken(token string) (*users.GetUserResponse, e
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	resp, err := app.clients.Users.GetUserForToken(ctx, req)
+	resp, err := app.grpc.Users.GetUserForToken(ctx, req)
 	if err != nil {
 		return nil, err
 	}
