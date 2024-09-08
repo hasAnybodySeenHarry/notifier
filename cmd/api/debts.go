@@ -5,7 +5,7 @@ import (
 	"harry2an.com/notifier/internal/data"
 )
 
-func (app *application) notifyDebt(lenderID int64, borrowerID int64, message []byte, d *consumer.Debt) {
+func (app *application) notifyDebt(lenderID int64, borrowerID int64, d *consumer.Debt) {
 	n := &data.Notification{
 		Type:    consumer.DebtCreated,
 		Payload: d.DebtToMap(),
@@ -16,32 +16,8 @@ func (app *application) notifyDebt(lenderID int64, borrowerID int64, message []b
 		app.logger.Printf("Error encountered while inserting %v", err)
 	}
 
-	client1, err := app.sendMessageToClient(borrowerID, notiID, message)
+	err = app.broadcastNotiIDForUsers([]int64{borrowerID, lenderID}, notiID, consumer.DebtCreated)
 	if err != nil {
-		app.logger.Printf("%v", err)
-	}
-
-	client2, err := app.sendMessageToClient(lenderID, notiID, message)
-	if err != nil {
-		app.logger.Printf("%v", err)
-	}
-
-	if !(client1 && client2) {
-		usersToNotify := make([]int64, 0, 2)
-
-		if !client1 {
-			app.logger.Printf("Borrower with ID %d is not being served by the current instance", borrowerID)
-			usersToNotify = append(usersToNotify, borrowerID)
-		}
-
-		if !client2 {
-			app.logger.Printf("Lender with ID %d is not being served by the current instance", borrowerID)
-			usersToNotify = append(usersToNotify, lenderID)
-		}
-
-		err := app.broadcastNotiIDForUsers(usersToNotify, notiID, consumer.DebtCreated)
-		if err != nil {
-			app.logger.Printf("Failed to broadcast notifications to the Pub/Sub: %v", err)
-		}
+		app.logger.Printf("Failed to broadcast notifications to the Pub/Sub: %v", err)
 	}
 }

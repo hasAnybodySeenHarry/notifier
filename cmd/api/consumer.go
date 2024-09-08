@@ -25,14 +25,17 @@ func (app *application) consume(cg sarama.ConsumerGroup) error {
 			}
 
 			if err := ctx.Err(); err != nil {
+				app.logger.Println("Context has been canceled.")
 				return
 			}
 		}
 	}()
 
-	<-relay
+	app.logger.Println("Consuming from topics has just started")
+
+	s := <-relay
 	cancel()
-	app.logger.Println("Received signals to stop the consumer")
+	app.logger.Printf("Received signal %s to stop the consumer", s.String())
 
 	app.logger.Println("Waiting 3 seconds for the consumer to be stopped")
 	time.Sleep(3 * time.Second)

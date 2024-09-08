@@ -42,7 +42,7 @@ func initDependencies(
 		if clientErr != nil {
 			logger.Printf("Failed to connect to the database: %v", clientErr)
 		} else {
-			logger.Println("Successfully connected to the database")
+			logger.Println("Successfully connected to the mongo database")
 		}
 	}()
 

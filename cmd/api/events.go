@@ -27,7 +27,7 @@ func (app *application) processMessage(message *sarama.ConsumerMessage) {
 			return
 		}
 		app.background(func() {
-			app.notifyDebt(d.Data.Lender.ID, d.Data.Borrower.ID, message.Value, &d)
+			app.notifyDebt(d.Data.Lender.ID, d.Data.Borrower.ID, &d)
 		})
 
 	case consumer.TransactionCreated:
@@ -38,7 +38,7 @@ func (app *application) processMessage(message *sarama.ConsumerMessage) {
 			return
 		}
 		app.background(func() {
-			app.notifyTransaction(t.Data.Lender.ID, t.Data.Borrower.ID, message.Value, &t)
+			app.notifyTransaction(t.Data.Lender.ID, t.Data.Borrower.ID, &t)
 		})
 
 	default:

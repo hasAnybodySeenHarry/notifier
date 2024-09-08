@@ -34,7 +34,7 @@ func (t *Transaction) TransactionToMap() map[string]interface{} {
 			"amount":      t.Data.Amount,
 			"description": t.Data.Description,
 			"created_at":  t.Data.CreatedAt.Format(time.RFC3339),
-			"version":     t.Data.Version.String(),
+			"version":     t.Data.Version,
 		},
 	}
 }

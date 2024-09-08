@@ -20,8 +20,6 @@ func (app *application) serve() error {
 		Handler:      app.routes(),
 	}
 
-	app.logger.Println("Server is starting")
-
 	shutdownErr := make(chan error, 1)
 	go func() {
 		relay := make(chan os.Signal, 1)
@@ -43,6 +41,8 @@ func (app *application) serve() error {
 		app.wg.Wait()
 		shutdownErr <- err
 	}()
+
+	app.logger.Println("Server is starting")
 
 	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {

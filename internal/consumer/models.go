@@ -6,8 +6,8 @@ const (
 )
 
 type Event struct {
-	Metadata metadata               `json:"metadata"`
-	Data     map[string]interface{} `json:"data"`
+	Metadata metadata `json:"metadata"`
+	// Data     map[string]interface{} `json:"data"`
 }
 
 type metadata struct {

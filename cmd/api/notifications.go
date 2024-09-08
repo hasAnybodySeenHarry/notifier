@@ -67,6 +67,11 @@ func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) err
 		if err != nil {
 			return err
 		}
+	} else {
+		notifications, err = app.models.Notifications.GetLatestNotifications(userID)
+		if err != nil {
+			return err
+		}
 	}
 
 	// overriding the previous connection
@@ -116,7 +121,6 @@ func (app *application) removeWebSocketUser(userID int64) error {
 		LastSentNotiID: client.lastSent,
 	}
 
-	// omitting the inserted id
 	_, err := app.models.UserStates.UpSert(userState)
 	if err != nil {
 		app.logger.Printf("WARNING: Updating the last sent notification ID faild with %v", err)
@@ -153,9 +157,4 @@ func (app *application) sendMessageToClient(clientID int64, notiID primitive.Obj
 	client.lastSent = notiID
 
 	return true, nil
-}
-
-func (app *application) broadcastNotiIDForUsers(users []int64, notiID primitive.ObjectID, notiType string) error {
-	app.logger.Printf("Broadcasted the noti ID %s with type %s for users %v", notiID.String(), notiType, users)
-	return nil
 }

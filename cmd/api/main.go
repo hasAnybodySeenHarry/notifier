@@ -69,7 +69,7 @@ func main() {
 	}
 
 	var servers sync.WaitGroup
-	servers.Add(2)
+	servers.Add(3)
 
 	go func() {
 		defer servers.Done()
@@ -82,6 +82,13 @@ func main() {
 		defer servers.Done()
 		if err := app.serve(); err != nil {
 			app.logger.Fatalln("HTTP server stopped with error:", err)
+		}
+	}()
+
+	go func() {
+		defer servers.Done()
+		if err := app.subscribeAndListen(); err != nil {
+			app.logger.Fatalln("Redis Pub/Sub stopped with error:", err)
 		}
 	}()
 

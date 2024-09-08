@@ -19,7 +19,7 @@ type debtData struct {
 	Category  string      `json:"category"`
 	Total     float64     `json:"total"`
 	CreatedAt time.Time   `json:"created_at"`
-	Version   uuid.UUID   `json:"-"`
+	Version   uuid.UUID   `json:"version"`
 }
 
 func (d *Debt) DebtToMap() map[string]interface{} {
