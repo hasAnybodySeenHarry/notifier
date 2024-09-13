@@ -1,6 +1,14 @@
 package redis
 
-import "github.com/redis/go-redis/v9"
+import (
+	"errors"
+
+	"github.com/redis/go-redis/v9"
+)
+
+var (
+	ErrUserAlreadyExists = errors.New("user already exists")
+)
 
 type Clients struct {
 	Users UserModel

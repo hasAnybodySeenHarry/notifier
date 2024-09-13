@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"harry2an.com/notifier/internal/data"
+	"harry2an.com/notifier/internal/redis"
 )
 
 type server struct {
@@ -29,6 +30,18 @@ var upgrader = websocket.Upgrader{
 }
 
 func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *http.Request) {
+	userID := app.getUser(r).Id
+	err := app.clients.Users.InitUserState(userID)
+	if err != nil {
+		switch {
+		case errors.Is(err, redis.ErrUserAlreadyExists):
+			app.error(w, r, http.StatusBadRequest, "duplicated clients detected")
+		default:
+			app.error(w, r, http.StatusBadRequest, err)
+		}
+		return
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		app.logger.Printf("Error encountered while upgrading as the web socket: %v", err)
@@ -36,10 +49,15 @@ func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *
 	}
 	defer conn.Close()
 
-	userID := app.getUser(r).Id
 	err = app.addWebSocketUser(userID, conn)
 	if err != nil {
-		app.logger.Printf("Error encountered while retrieving the last sent notification id with %v", err)
+		app.logger.Printf("Error encountered while preparing user notification sync state %v", err)
+		return
+	}
+
+	err = app.clients.Users.AddUserState(userID, redis.CONNECTED)
+	if err != nil {
+		app.logger.Printf("Error encountered while adding user to redis database %v", err)
 		return
 	}
 
@@ -53,6 +71,11 @@ func (app *application) notificationSubscriberHandler(w http.ResponseWriter, r *
 
 	if err := app.removeWebSocketUser(userID); err != nil {
 		app.logger.Printf("Error encountered while removing the client with ID %d %v", userID, err)
+	}
+
+	err = app.clients.Users.DeleteUser(userID)
+	if err != nil {
+		app.logger.Printf("WARNING: cannot delete user state. This may lead to unconnectable clients.")
 	}
 }
 
@@ -74,7 +97,6 @@ func (app *application) addWebSocketUser(userID int64, conn *websocket.Conn) err
 		}
 	}
 
-	// overriding the previous connection
 	u := &user{
 		lastSent: lastID,
 		conn:     conn,
