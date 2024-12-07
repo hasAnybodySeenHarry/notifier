@@ -11,6 +11,7 @@ on:
     path-ignore:
       - "migrations/**"
       - "remote/**"
+      - "**/CHANGELOG.md"
 
 jobs:
   service-ci:
