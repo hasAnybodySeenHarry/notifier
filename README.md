@@ -203,7 +203,6 @@ We would like to thank the following projects and organizations for their contri
 - **Linkerd**: For being a lightweight, lightning-fast, yet a simple mesh solution.
 - **Go**: Most importantly, empowering every one of us to build software with ease.
 
-
 ## Contact
 
 For any questions or feedback, please contact us at [harryd.io@proton.me](mailto:harryd.io@proton.me).
