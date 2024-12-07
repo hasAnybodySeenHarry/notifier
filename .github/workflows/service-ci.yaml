@@ -8,10 +8,10 @@ on:
       - "feat/**"
       - "release/**"
       - "releases/**"
-    path-ignore:
+    paths-ignore:
       - "migrations/**"
       - "remote/**"
-      - "README.md"
+      - "**.md"
 
 jobs:
   service-ci:
